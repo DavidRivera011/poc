@@ -1,52 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Eclipse MicroProfile demo</title>
+    <meta charset="UTF-8" />
+    <title>Gestión de Empleados</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+        form { margin-top: 1rem; }
+        input, select { padding: 0.5rem; margin: 0.3rem; }
+        button { padding: 0.5rem 1rem; }
+    </style>
 </head>
 <body>
 
-<h2>MicroProfile</h2>
+<h1>Gestión de Empleados</h1>
 
-<a href="data/hello" target="_blank" >Hello JAX-RS endpoint</a> <br/>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Edad</th>
+        <th>Teléfono</th>
+        <th>Género</th>
+        <th>Fecha Nac.</th>
+        <th>Acciones</th>
+    </tr>
+    </thead>
+    <tbody id="tabla-empleados">
+    <!-- Datos cargados dinámicamente -->
+    </tbody>
+</table>
 
+<h2 id="form-title">Agregar Empleado</h2>
+<form id="form-empleado">
+    <input type="hidden" id="id_empleado" />
+    <input type="text" id="nombre_empleado" placeholder="Nombre" required />
+    <input type="number" id="edad_empleado" placeholder="Edad" required />
+    <input type="text" id="telefono_empleado" placeholder="Teléfono" required />
+    <select id="genero_empleado" required>
+        <option value="">Género</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Femenino">Femenino</option>
+    </select>
+    <input type="date" id="fecha_nac_empleado" required />
+    <button type="submit">Guardar</button>
+    <button type="button" onclick="limpiarFormulario()">Cancelar</button>
+</form>
 
-<h3>Config</h3>
-<a href="data/config/injected" target="_blank" >Injected config values</a> <br/>
-<a href="data/config/lookup" target="_blank" >Config values by lookup</a> <br/>
+<script>
+    const API_URL = "/api/empleados";
 
+    document.addEventListener("DOMContentLoaded", cargarEmpleados);
+    document.getElementById("form-empleado").addEventListener("submit", guardarEmpleado);
 
+    function cargarEmpleados() {
+        fetch(API_URL)
+            .then(res => res.json())
+            .then(data => {
+                const tabla = document.getElementById("tabla-empleados");
+                tabla.innerHTML = "";
+                data.forEach(emp => {
+                    tabla.innerHTML += `
+              <tr>
+                <td>${emp.id_empleado}</td>
+                <td>${emp.nombre_empleado}</td>
+                <td>${emp.edad_empleado}</td>
+                <td>${emp.telefono_empleado}</td>
+                <td>${emp.genero_empleado}</td>
+                <td>${emp.fecha_nac_empleado}</td>
+                <td>
+                  <button onclick='editarEmpleado(${JSON.stringify(emp)})'>Editar</button>
+                  <button onclick='eliminarEmpleado(${emp.id_empleado})'>Eliminar</button>
+                </td>
+              </tr>
+            `;
+                });
+            });
+    }
 
+    function guardarEmpleado(e) {
+        e.preventDefault();
+        const id = document.getElementById("id_empleado").value;
+        const empleado = {
+            nombre_empleado: document.getElementById("nombre_empleado").value,
+            edad_empleado: parseInt(document.getElementById("edad_empleado").value),
+            telefono_empleado: document.getElementById("telefono_empleado").value,
+            genero_empleado: document.getElementById("genero_empleado").value,
+            fecha_nac_empleado: document.getElementById("fecha_nac_empleado").value
+        };
 
+        if (id) {
+            fetch(`${API_URL}/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(empleado)
+            }).then(() => {
+                limpiarFormulario();
+                cargarEmpleados();
+            });
+        } else {
+            fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(empleado)
+            }).then(() => {
+                limpiarFormulario();
+                cargarEmpleados();
+            });
+        }
+    }
 
-<h3>Health</h3>
-<a href="health" target="_blank" >Health status (with custom status ServiceHealthCheck)</a> <br/>
+    function editarEmpleado(emp) {
+        document.getElementById("form-title").textContent = "Editar Empleado";
+        document.getElementById("id_empleado").value = emp.id_empleado;
+        document.getElementById("nombre_empleado").value = emp.nombre_empleado;
+        document.getElementById("edad_empleado").value = emp.edad_empleado;
+        document.getElementById("telefono_empleado").value = emp.telefono_empleado;
+        document.getElementById("genero_empleado").value = emp.genero_empleado;
+        document.getElementById("fecha_nac_empleado").value = emp.fecha_nac_empleado;
+    }
 
+    function eliminarEmpleado(id) {
+        if (confirm("¿Seguro que deseas eliminar este empleado?")) {
+            fetch(`${API_URL}/${id}`, { method: "DELETE" })
+                .then(() => cargarEmpleados());
+        }
+    }
 
-
-<h3>Metrics</h3>
-<a href="data/metric/timed" target="_blank" >Timed endpoint</a> <br/>
-<a href="metrics" target="_blank" >Metrics page</a> <br/>
-
-
-
-<h3>JWT Auth</h3>
-<a href="data/secured/test" target="_blank" >Call Secured endpoint with JWT in Authorization Header</a> <br/>
-
-
-
-<h3>Open API</h3>
-<a href="openapi" target="_blank" >Open API Documentation</a> <br/>
-
-
-
-
-
-<h3>Rest Client</h3>
-<a href="data/client/test/parameterValue" target="_blank" >Call REST endpoint using generated client based on interface</a> <br/>
-
-
-
+    function limpiarFormulario() {
+        document.getElementById("form-title").textContent = "Agregar Empleado";
+        document.getElementById("form-empleado").reset();
+        document.getElementById("id_empleado").value = "";
+    }
+</script>
 
 </body>
 </html>
